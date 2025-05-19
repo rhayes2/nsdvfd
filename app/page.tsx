@@ -94,7 +94,7 @@ export default function HomePage() {
                 <Flame className="h-6 w-6 text-red-500" />
                 <span className="text-xl font-bold">NSDF</span>
               </div>
-              <p className="text-slate-400">Serving the North Shore District with pride and dedication since 1952.</p>
+              <p className="text-slate-400">Serving the North Shore District with pride and dedication.</p>
             </div>
             <div>
               <h3 className="text-lg font-medium mb-4">Quick Links</h3>
