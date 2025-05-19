@@ -1,103 +1,179 @@
-import Image from "next/image";
+import Link from "next/link"
+import {
+  Flame,
+} from "lucide-react"
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="flex min-h-screen flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Flame className="h-6 w-6 text-red-600" />
+            <span className="text-xl font-bold">NSDF</span>
+          </div>
+          <nav className="hidden md:flex gap-6">
+            <Link href="#" className="text-sm font-medium hover:text-red-600 transition-colors">
+              Home
+            </Link>
+            <Link href="#about" className="text-sm font-medium hover:text-red-600 transition-colors">
+              About
+            </Link>
+            <Link href="#services" className="text-sm font-medium hover:text-red-600 transition-colors">
+              Services
+            </Link>
+            <Link href="#volunteer" className="text-sm font-medium hover:text-red-600 transition-colors">
+              Volunteer
+            </Link>
+            <Link href="#news" className="text-sm font-medium hover:text-red-600 transition-colors">
+              News
+            </Link>
+            <Link href="#contact" className="text-sm font-medium hover:text-red-600 transition-colors">
+              Contact
+            </Link>
+          </nav>
+          {/* <Button
+            variant="outline"
+            className="hidden md:inline-flex border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            Emergency: 911
+          </Button>
+          <Button variant="outline" size="icon" className="md:hidden">
+            <span className="sr-only">Toggle menu</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6"
+            >
+              <line x1="4" x2="20" y1="12" y2="12" />
+              <line x1="4" x2="20" y1="6" y2="6" />
+              <line x1="4" x2="20" y1="18" y2="18" />
+            </svg>
+          </Button> */}
         </div>
+      </header>
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative px-4">
+          <div className="absolute inset-0 bg-black/60 z-10" />
+          <div className="relative h-[600px]">
+            {/* <Image
+              src="/placeholder.svg?height=600&width=1200"
+              alt="Firefighters in action"
+              fill
+              className="object-cover"
+              priority
+            /> */}
+          </div>
+          <div className="container absolute inset-0 z-20 flex flex-col items-center justify-center text-center text-white">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+              North Shore District
+              <br />
+              Volunteer Firefighters
+            </h1>
+          </div>
+        </section>
+
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="border-t bg-slate-900 text-white px-4">
+        <div className="container py-8 md:py-12">
+          <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Flame className="h-6 w-6 text-red-500" />
+                <span className="text-xl font-bold">NSDF</span>
+              </div>
+              <p className="text-slate-400">Serving the North Shore District with pride and dedication since 1952.</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-medium mb-4">Quick Links</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="#" className="text-slate-400 hover:text-white transition-colors">
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#about" className="text-slate-400 hover:text-white transition-colors">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#services" className="text-slate-400 hover:text-white transition-colors">
+                    Services
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#volunteer" className="text-slate-400 hover:text-white transition-colors">
+                    Volunteer
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#news" className="text-slate-400 hover:text-white transition-colors">
+                    News
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#contact" className="text-slate-400 hover:text-white transition-colors">
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-medium mb-4">Resources</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="#" className="text-slate-400 hover:text-white transition-colors">
+                    Fire Safety Tips
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-slate-400 hover:text-white transition-colors">
+                    Emergency Preparedness
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-slate-400 hover:text-white transition-colors">
+                    Community Programs
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-slate-400 hover:text-white transition-colors">
+                    Donation Information
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            {/* <div>
+              <h3 className="text-lg font-medium mb-4">Newsletter</h3>
+              <p className="text-slate-400 mb-4">Subscribe to our newsletter for updates on events and safety tips.</p>
+              <form className="space-y-2">
+                <input
+                  type="email"
+                  placeholder="Your email"
+                  className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white"
+                />
+                <Button className="w-full bg-red-600 hover:bg-red-700">Subscribe</Button>
+              </form>
+            </div> */}
+          </div>
+          <div className="mt-8 pt-8 border-t border-slate-800 text-center text-slate-400">
+            <p>© {new Date().getFullYear()} North Shore District Volunteer Firefighters. All rights reserved.</p>
+          </div>
+        </div>
       </footer>
     </div>
-  );
+  )
 }
