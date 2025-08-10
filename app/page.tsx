@@ -18,8 +18,7 @@ export default function HomePage() {
                 "description": "Providing fire and emergency services to the North Shore District through the dedication of our volunteer firefighters.",
                 "url": "https://nsdvfd.ca",
                 "sameAs": [
-                  "https://www.facebook.com/your-facebook-page",
-                  "https://twitter.com/your-twitter-handle"
+                  "https://www.facebook.com/profile.php?id=61559327542843",
                 ],
                 "address": {
                   "@type": "PostalAddress",
