@@ -9,38 +9,33 @@ export default function HomePage() {
 
       <script type="application/ld+json" key={'ldJson'} id="ldJson">
         {`
-            {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": ["LocalBusiness", "FireStation", "Nonprofit"],
-          "name": "North Shore District Volunteer Firefighters",
-          "description": "Providing fire and emergency services to the North Shore District through the dedication of our volunteer firefighters.",
-          "url": "https://nsdvfd.ca",
-          "sameAs": [
-            "https://www.facebook.com/your-facebook-page",
-            "https://twitter.com/your-twitter-handle"
-          ],
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": "46177 Cabot Trail",
-            "addressLocality": "Indian Brook",
-            "addressRegion": "NS",
-            "postalCode": "B0C 1H0",
-            "addressCountry": "CA"
-          },
-          "areaServed": {
-            "@type": "AdministrativeArea",
-            "name": "North Shore District"
+          {
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": ["LocalBusiness", "FireStation", "Nonprofit"],
+                "name": "North Shore District Volunteer Firefighters",
+                "description": "Providing fire and emergency services to the North Shore District through the dedication of our volunteer firefighters.",
+                "url": "https://nsdvfd.ca",
+                "sameAs": [
+                  "https://www.facebook.com/your-facebook-page",
+                  "https://twitter.com/your-twitter-handle"
+                ],
+                "address": {
+                  "@type": "PostalAddress",
+                  "streetAddress": "46177 Cabot Trail",
+                  "addressLocality": "Indian Brook",
+                  "addressRegion": "NS",
+                  "postalCode": "B0C 1H0",
+                  "addressCountry": "CA"
+                },
+                "areaServed": {
+                  "@type": "AdministrativeArea",
+                  "name": "North Shore District"
+                }
+              }
+            ]
           }
-        },
-        {
-          "@type": "WebSite",
-          "name": "North Shore District Volunteer Firefighters",
-          "url": "https://nsdvfd.ca",
-        }
-      ]
-    }
         `}
       </script>
 
