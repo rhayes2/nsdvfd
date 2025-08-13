@@ -212,3 +212,16 @@ export default function HomePage() {
     </>
   )
 }
+
+export const metadata = {
+  title: "North Shore District Volunteer Firefighters",
+  description: "Providing fire and emergency services to the North Shore District through the dedication of our volunteer firefighters.",
+  openGraph: {
+    title: "North Shore District Volunteer Firefighters",
+    description: "Providing fire and emergency services to the North Shore District through the dedication of our volunteer firefighters.",
+    url: "https://nsdvfd.ca",
+    siteName: "NSDF",
+    locale: "en_CA",
+    type: "website",
+  }
+}
