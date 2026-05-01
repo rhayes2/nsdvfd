@@ -37,7 +37,7 @@ jobs:
             CLEAN_DIFF=$(echo "$DIFF" | jq -sRr @json)
 
             # 4. AI Call (Single line with Dev Lead persona)
-            RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $GH_MODELS_TOKEN" -d "{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a dev lead. Summarize these code changes for the team.\"}, {\"role\": \"user\", \"content\": $CLEAN_DIFF}]}")
+            RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $GH_MODELS_TOKEN" -d "{\"model\": \"deepseek/DeepSeek-R1-0528\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a dev lead. Summarize these code changes for the team.\"}, {\"role\": \"user\", \"content\": $CLEAN_DIFF}]}")
 
             # 5. Extract content
             SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "AI Error: Check Token or API limits."')
