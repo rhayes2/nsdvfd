@@ -64,7 +64,7 @@ jobs:
           WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
         run: |
           # Check if AI_REPORT exists, else use a fallback
-          REPORT="https://eopl6bq6x49t514.m.pipedream.net"
+          REPORT="${{ env.AI_REPORT }}"
           if [ -z "$REPORT" ]; then REPORT="Workflow failed to generate a report."; fi
 
           # Use jq to build a safe, escaped JSON for Google Chat
