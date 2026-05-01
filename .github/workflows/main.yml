@@ -17,51 +17,45 @@ jobs:
       - name: Generate AI Summary
         id: ai_summary
         env:
-          GH_MODELS_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
         run: |
           git remote set-head origin --auto
           
-          # Get the diff (24h -> 5 commits -> 1 commit)
+          # 1. Get the short SHA to pass to the AI
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+
+          # 2. Get the diff (24h -> 5 commits -> 1 commit)
           DIFF=$(git diff HEAD@{24.hours.ago}..HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' 2>/dev/null || git diff HEAD~5 HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' 2>/dev/null)
           if [ -z "$DIFF" ]; then DIFF=$(git diff HEAD^ HEAD 2>/dev/null || echo ""); fi
 
           if [ -z "$DIFF" ]; then
             echo "AI_REPORT=No changes detected in history." >> "$GITHUB_ENV"
           else
-            # 1. Define the specific System Prompt as a variable
-            # This follows your exact layout request.
-            SYSTEM_PROMPT="You are a dev lead. Summarize these code changes EXACTLY in this format:
-            ## Layout Components
-            filename - description of changes, related sb model / type:
-            layoutcomponentname
-             |
-             | -- fieldname : type
-
-            ## Nested Components
-            (Same format as above)
-
-            ## Modified Components
-            (Brief bullet points)
-
-            ## Other
-            (Any other changes)
+            # 3. Refined System Prompt
+            SYSTEM_PROMPT="You are a dev lead. Review the provided code changes from the last 24 hours.
+            Follow these rules strictly:
+            - Provide a very short overall summary of the changes at the top.
+            - List each change using the FILENAME as the title (e.g., '### filename.tsx').
+            - Keep descriptions short, technical, and to the point.
+            - At the end of every file description, add a link to the commit in this format: ([SHORT_SHA]($REPO_URL/commit/$SHORT_SHA)).
             
-            Use actual types and field names from the code. If a section is empty, omit it."
+            Format:
+            ### [filename]
+            [Description] ([Short SHA Link])"
 
-            # 2. Build the JSON payload safely using jq
-            # This prevents shell escaping errors with the | and -- characters
+            # 4. Safe JSON Payload
             JSON_PAYLOAD=$(jq -n \
               --arg sys "$SYSTEM_PROMPT" \
               --arg user "$DIFF" \
               '{model: "gpt-4o-mini", messages: [{role: "system", content: $sys}, {role: "user", content: $user}]}')
 
-            # 3. Call AI
+            # 5. AI Call
             RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $GH_MODELS_TOKEN" \
               -d "$JSON_PAYLOAD")
 
-            # 4. Extract content
             SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "AI Error: check Action logs."')
             
             echo "AI_REPORT<<GITHUB_ENV_DELIMITER" >> "$GITHUB_ENV"
@@ -75,6 +69,6 @@ jobs:
           WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           REPORT: ${{ env.AI_REPORT }}
         run: |
-          # Use jq to build the final JSON for Google Chat to keep the tree formatting intact
+          # Post the markdown-formatted report
           PAYLOAD=$(jq -n --arg txt "$REPORT" '{text: $txt}')
           curl -X POST -H "Content-Type: application/json" "$WEBHOOK_URL" -d "$PAYLOAD"
