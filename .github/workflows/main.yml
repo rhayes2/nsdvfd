@@ -19,7 +19,7 @@ jobs:
       - name: Generate AI Summary
         id: ai_summary
         env:
-          GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
+          GH_MODELS_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           # Re-establish Git references
           git remote set-head origin --auto
