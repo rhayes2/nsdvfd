@@ -21,42 +21,46 @@ jobs:
         run: |
           git remote set-head origin --auto
           
-          # 1. Get the short SHA to pass to the AI
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           REPO_URL="${{ github.server_url }}/${{ github.repository }}"
 
-          # 2. Get the diff (24h -> 5 commits -> 1 commit)
+          # 1. Get the diff and TRIM it to the first 500 lines to avoid 'Context Window' errors
           DIFF=$(git diff HEAD@{24.hours.ago}..HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' 2>/dev/null || git diff HEAD~5 HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' 2>/dev/null)
           if [ -z "$DIFF" ]; then DIFF=$(git diff HEAD^ HEAD 2>/dev/null || echo ""); fi
+          
+          # Only take the first 500 lines of the diff to stay safe and low-cost
+          DIFF_TRIMMED=$(echo "$DIFF" | head -n 500)
 
-          if [ -z "$DIFF" ]; then
-            echo "AI_REPORT=No changes detected in history." >> "$GITHUB_ENV"
+          if [ -z "$DIFF_TRIMMED" ]; then
+            echo "AI_REPORT=No changes detected." >> "$GITHUB_ENV"
           else
-            # 3. Refined System Prompt
-            SYSTEM_PROMPT="You are a dev lead. Review the provided code changes from the last 24 hours.
-            Follow these rules strictly:
-            - Provide a very short overall summary of the changes at the top.
-            - List each change using the FILENAME as the title (e.g., '### filename.tsx').
-            - Keep descriptions short, technical, and to the point.
-            - At the end of every file description, add a link to the commit in this format: ([SHORT_SHA]($REPO_URL/commit/$SHORT_SHA)).
-            
+            SYSTEM_PROMPT="You are a dev lead. Review the provided code changes.
             Format:
             ### [filename]
-            [Description] ([Short SHA Link])"
+            [Short Description] ([SHORT_SHA]($REPO_URL/commit/$SHORT_SHA))"
 
-            # 4. Safe JSON Payload
+            # 2. Build the JSON safely
             JSON_PAYLOAD=$(jq -n \
               --arg sys "$SYSTEM_PROMPT" \
-              --arg user "$DIFF" \
+              --arg user "$DIFF_TRIMMED" \
               '{model: "gpt-4o-mini", messages: [{role: "system", content: $sys}, {role: "user", content: $user}]}')
 
-            # 5. AI Call
+            # 3. Call AI and capture the FULL response to the log
+            echo "Calling GitHub Models API..."
             RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $GH_MODELS_TOKEN" \
               -d "$JSON_PAYLOAD")
 
-            SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "AI Error: check Action logs."')
+            # 4. Check if the response contains an error
+            ERROR_MSG=$(echo "$RESPONSE" | jq -r '.error.message // empty')
+            
+            if [ -n "$ERROR_MSG" ]; then
+                echo "❌ API ERROR DETECTED: $ERROR_MSG"
+                SUMMARY="⚠️ AI Error: $ERROR_MSG"
+            else
+                SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "Error: Empty response from AI."')
+            fi
             
             echo "AI_REPORT<<GITHUB_ENV_DELIMITER" >> "$GITHUB_ENV"
             echo "$SUMMARY" >> "$GITHUB_ENV"
@@ -69,6 +73,6 @@ jobs:
           WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           REPORT: ${{ env.AI_REPORT }}
         run: |
-          # Post the markdown-formatted report
+          # Robust JSON building for Google Chat
           PAYLOAD=$(jq -n --arg txt "$REPORT" '{text: $txt}')
           curl -X POST -H "Content-Type: application/json" "$WEBHOOK_URL" -d "$PAYLOAD"
