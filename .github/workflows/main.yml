@@ -49,3 +49,9 @@ jobs:
             echo "$SUMMARY" >> "$GITHUB_ENV"
             echo "GITHUB_ENV_DELIMITER" >> "$GITHUB_ENV"
           fi
+          
+          - name: Post to Google Chat
+          run: |
+            # Use jq to build the JSON to prevent quotes in the AI text from breaking the curl command
+            PAYLOAD=$(jq -n --arg msg "$AI_REPORT" '{text: $msg}')
+            curl -X POST -H "Content-Type: application/json" "$WEBHOOK_URL" -d "$PAYLOAD"
