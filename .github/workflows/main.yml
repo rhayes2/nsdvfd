@@ -24,9 +24,9 @@ jobs:
             # 2. Extract and format classes
             NEW_CLASSES=$(echo "$DIFF" | grep -oE "class(Name)?=\"[^\"]+\"" | sed -E 's/class(Name)?="//;s/"//' | tr ' ' '\n' | sort -u | jq -R . | jq -s .)
 
-            # 3. Call AI (Using a single-line string for the curl command to avoid '-' errors)
-            RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $GH_MODELS_TOKEN" -d "{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"system\", \"content\": \"List new Tailwind classes by category.\"}, {\"role\": \"user\", \"content\": \"Classes: $NEW_CLASSES\"}]}")
-
+            # 3. AI Call (Single line to prevent shell escaping errors)
+            RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $GH_MODELS_TOKEN" -d "{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a dev lead. Summarize these code changes for the team.\"}, {\"role\": \"user\", \"content\": $CLEAN_DIFF}]}")
+            
             # 4. Extract content
             SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "AI Error: Check Token Scope"')
 
