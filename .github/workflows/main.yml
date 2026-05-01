@@ -1,57 +1,47 @@
-name: Daily AI Summary to Google Chat
-
+name: Tailwind Delta Tracker
 on:
-  schedule:
-    - cron: '0 9 * * 1-5'
   workflow_dispatch: 
 
 jobs:
-  summarize-and-post:
+  track-tailwind-delta:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0
 
       - name: Generate AI Summary
         id: ai_summary
         env:
           GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
         run: |
-          # 1. Fetch changes
+          # 1. Get the diff (using a simpler HEAD~1 for testing)
           DIFF=$(git diff HEAD~1 HEAD -- 'src/**/*.{js,ts,jsx,tsx,html}' | grep '^\+' | grep -v '+++' || echo "")
 
           if [ -z "$DIFF" ]; then
             echo "AI_REPORT=No new styles detected today. 🧊" >> "$GITHUB_ENV"
           else
-            # 2. Extract classes
+            # 2. Extract and format classes
             NEW_CLASSES=$(echo "$DIFF" | grep -oE "class(Name)?=\"[^\"]+\"" | sed -E 's/class(Name)?="//;s/"//' | tr ' ' '\n' | sort -u | jq -R . | jq -s .)
 
-            # 3. Call AI with explicit error checking
-            RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer $GH_MODELS_TOKEN" \
-              -d "{
-                \"model\": \"gpt-4o-mini\",
-                \"messages\": [
-                  {\"role\": \"system\", \"content\": \"Summarize these new Tailwind classes by category.\"},
-                  {\"role\": \"user\", \"content\": \"Classes: $NEW_CLASSES\"}
-                ]
-              }")
+            # 3. Call AI (Using a single-line string for the curl command to avoid '-' errors)
+            RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $GH_MODELS_TOKEN" -d "{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"system\", \"content\": \"List new Tailwind classes by category.\"}, {\"role\": \"user\", \"content\": \"Classes: $NEW_CLASSES\"}]}")
 
-            # 4. Extract content safely
-            # Using jq -r ensures we get plain text
-            SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "AI Error: Could not parse response."')
+            # 4. Extract content
+            SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "AI Error: Check Token Scope"')
 
-            # 5. THE FIX: Use a unique delimiter for the Heredoc to avoid conflicts
+            # 5. Save to Environment safely
             echo "AI_REPORT<<GITHUB_ENV_DELIMITER" >> "$GITHUB_ENV"
             echo "$SUMMARY" >> "$GITHUB_ENV"
             echo "GITHUB_ENV_DELIMITER" >> "$GITHUB_ENV"
           fi
-          
-          - name: Post to Google Chat
-          run: |
-            # Use jq to build the JSON to prevent quotes in the AI text from breaking the curl command
-            PAYLOAD=$(jq -n --arg msg "$AI_REPORT" '{text: $msg}')
-            curl -X POST -H "Content-Type: application/json" "$WEBHOOK_URL" -d "$PAYLOAD"
+
+      - name: Post to Google Chat
+        if: always()
+        env:
+          WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          REPORT: ${{ env.AI_REPORT }}
+        run: |
+          # Use jq to build the final JSON payload
+          PAYLOAD=$(jq -n --arg txt "*🎨 Tailwind Design Delta:*\n$REPORT" '{text: $txt}')
+          curl -X POST -H "Content-Type: application/json" "$WEBHOOK_URL" -d "$PAYLOAD"
