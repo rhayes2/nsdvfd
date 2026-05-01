@@ -15,14 +15,23 @@ jobs:
         env:
           GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
         run: |
-          # 1. Get the diff (using a simpler HEAD~1 for testing)
-          DIFF=$(git diff HEAD~1 HEAD -- 'src/**/*.{js,ts,jsx,tsx,html}' | grep '^\+' | grep -v '+++' || echo "")
+          # 1. Force Git to recognize the main branch
+          git remote set-head origin --auto
+          
+          # 2. Try to get diff from last 24 hours. 
+          # If that's empty, get the last 5 commits as a fallback for testing.
+          DIFF=$(git diff HEAD@{24.hours.ago}..HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' 2>/dev/null || git diff HEAD~5 HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock')
+          
+          # 3. Last stand: If still empty, just get the most recent commit
+          if [ -z "$DIFF" ]; then
+            DIFF=$(git diff HEAD^ HEAD)
+          fi
 
           if [ -z "$DIFF" ]; then
-            echo "AI_REPORT=No new styles detected today. 🧊" >> "$GITHUB_ENV"
+            echo "AI_REPORT=No changes found in history. Ensure you have pushed at least one commit!" >> "$GITHUB_ENV"
           else
-            # 2. Extract and format classes
-            NEW_CLASSES=$(echo "$DIFF" | grep -oE "class(Name)?=\"[^\"]+\"" | sed -E 's/class(Name)?="//;s/"//' | tr ' ' '\n' | sort -u | jq -R . | jq -s .)
+            # JSON escape the diff
+            CLEAN_DIFF=$(echo "$DIFF" | jq -sRr @json)
 
             # 3. AI Call (Single line to prevent shell escaping errors)
             RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $GH_MODELS_TOKEN" -d "{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a dev lead. Summarize these code changes for the team.\"}, {\"role\": \"user\", \"content\": $CLEAN_DIFF}]}")
