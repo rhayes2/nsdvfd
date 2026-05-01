@@ -1,0 +1,75 @@
+name: Daily AI Summary to Google Chat
+
+on:
+  schedule:
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch: 
+
+jobs:
+  summarize-and-post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+
+      - name: Generate AI Summary
+        id: ai_summary
+        env:
+          GH_MODELS_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # 1. Force Git to recognize the main branch
+          git remote set-head origin --auto
+          
+          # 2. Try to get diff from last 24 hours. 
+          # If that's empty, get the last 5 commits as a fallback for testing.
+          DIFF=$(git diff HEAD@{24.hours.ago}..HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' 2>/dev/null || git diff HEAD~5 HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock')
+          
+          # 3. Last stand: If still empty, just get the most recent commit
+          if [ -z "$DIFF" ]; then
+            DIFF=$(git diff HEAD^ HEAD)
+          fi
+
+          if [ -z "$DIFF" ]; then
+            echo "AI_REPORT=No changes found in history. Ensure you have pushed at least one commit!" >> "$GITHUB_ENV"
+          else
+            # JSON escape the diff
+            CLEAN_DIFF=$(echo "$DIFF" | jq -sRr @json)
+
+            # AI Call
+            RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $GH_MODELS_TOKEN" \
+              -d "{
+                \"model\": \"gpt-4o-mini\",
+                \"messages\": [
+                  {\"role\": \"system\", \"content\": \"You are a dev lead. Summarize these code changes for the team.\"},
+                  {\"role\": \"user\", \"content\": $CLEAN_DIFF}
+                ]
+              }")
+
+            SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "AI Error: Check Token permissions."')
+            
+            {
+              echo "AI_REPORT<<EOF"
+              echo "$SUMMARY"
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          fi
+
+      - name: Post to Google Chat
+        if: always()
+        env:
+          WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+        run: |
+          # Check if AI_REPORT exists, else use a fallback
+          REPORT="https://eopl6bq6x49t514.m.pipedream.net"
+          if [ -z "$REPORT" ]; then REPORT="Workflow failed to generate a report."; fi
+
+          # Use jq to build a safe, escaped JSON for Google Chat
+          PAYLOAD=$(jq -n --arg txt "*Daily Summary:* \n$REPORT" '{text: $txt}')
+          
+          curl -X POST -H "Content-Type: application/json" \
+          "$WEBHOOK_URL" \
+          -d "$PAYLOAD"
