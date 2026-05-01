@@ -2,30 +2,31 @@ name: Daily AI Summary to Google Chat
 
 on:
   schedule:
-    - cron: '0 9 * * 1-5'
-  workflow_dispatch: 
+    - cron: '0 9 * * 1-5' # Runs at 9:00 AM Mon-Fri (UTC)
+  workflow_dispatch:      # Allows you to click "Run workflow" manually
 
 jobs:
   summarize-and-post:
     runs-on: ubuntu-latest
     steps:
+      # 1. Checkout with full history
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 
 
+      # 2. Generate the Summary
       - name: Generate AI Summary
         id: ai_summary
         env:
           GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
         run: |
-          # 1. Re-establish the HEAD reference
+          # Re-establish Git references
           git remote set-head origin --auto
           
-          # 2. Reverted to your working Diff Logic
+          # Get the diff (Last 24h -> Last 5 commits -> Last 1 commit)
           DIFF=$(git diff HEAD@{24.hours.ago}..HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' 2>/dev/null || git diff HEAD~5 HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' 2>/dev/null)
           
-          # 3. Final Fallback
           if [ -z "$DIFF" ]; then
             DIFF=$(git diff HEAD^ HEAD 2>/dev/null || echo "")
           fi
@@ -33,27 +34,46 @@ jobs:
           if [ -z "$DIFF" ]; then
             echo "AI_REPORT=No code changes detected in history. 🧊" >> "$GITHUB_ENV"
           else
-            # JSON escape the diff
+            # JSON escape the diff for the API call
             CLEAN_DIFF=$(echo "$DIFF" | jq -sRr @json)
 
-            # 4. AI Call (Single line with Dev Lead persona)
-            RESPONSE=$(curl -s -X POST "https://models.inference.ai.azure.com/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $GH_MODELS_TOKEN" -d "{\"model\": \"deepseek/DeepSeek-R1-0528\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a dev lead. Summarize these code changes for the team.\"}, {\"role\": \"user\", \"content\": $CLEAN_DIFF}]}")
+            # --- VERBOSE AI CALL ---
+            # Using -i to capture headers in the log for debugging
+            RESPONSE=$(curl -i -X POST "https://models.inference.ai.azure.com/chat/completions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $GH_MODELS_TOKEN" \
+              -d "{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a dev lead. Summarize these code changes for the team.\"}, {\"role\": \"user\", \"content\": $CLEAN_DIFF}]}")
 
-            # 5. Extract content
-            SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "AI Error: Check Token or API limits."')
+            # Log the raw response so you can see why it fails (if it does)
+            echo "--- RAW API RESPONSE START ---"
+            echo "$RESPONSE"
+            echo "--- RAW API RESPONSE END ---"
+
+            # Extract just the JSON body by removing HTTP headers
+            BODY=$(echo "$RESPONSE" | sed -e '1,/^\r$/d')
             
-            # 6. Safe Environment save
+            # Parse the summary or capture the error
+            SUMMARY=$(echo "$BODY" | jq -r '.choices[0].message.content // "AI Error: check logs above for the raw response."')
+            
+            # Save to Environment using a safe delimiter
             echo "AI_REPORT<<GITHUB_ENV_DELIMITER" >> "$GITHUB_ENV"
             echo "$SUMMARY" >> "$GITHUB_ENV"
             echo "GITHUB_ENV_DELIMITER" >> "$GITHUB_ENV"
           fi
 
+      # 3. Post to Google Chat
       - name: Post to Google Chat
         if: always()
         env:
           WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           REPORT: ${{ env.AI_REPORT }}
         run: |
-          # Robust JSON building for Google Chat
-          PAYLOAD=$(jq -n --arg txt "*Daily Summary:* \n$REPORT" '{text: $txt}')
-          curl -X POST -H "Content-Type: application/json" "$WEBHOOK_URL" -d "$PAYLOAD"
+          # Fallback message if the AI step failed completely
+          FINAL_REPORT="${REPORT:-The AI summary step failed to produce content. Check Action logs.}"
+          
+          # Build a safe JSON payload for Google Chat
+          PAYLOAD=$(jq -n --arg txt "*Daily Summary:* \n$FINAL_REPORT" '{text: $txt}')
+          
+          curl -X POST -H "Content-Type: application/json" \
+          "$WEBHOOK_URL" \
+          -d "$PAYLOAD"
