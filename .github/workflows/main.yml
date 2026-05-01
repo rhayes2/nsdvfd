@@ -1,4 +1,20 @@
-- name: Generate AI Summary
+name: Daily AI Summary to Google Chat
+
+on:
+  schedule:
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch: 
+
+jobs:
+  summarize-and-post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+
+      - name: Generate AI Summary
         id: ai_summary
         env:
           GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
